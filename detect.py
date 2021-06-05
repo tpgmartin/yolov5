@@ -58,6 +58,9 @@ def detect(opt):
         model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
     t0 = time.time()
     for path, img, im0s, vid_cap in dataset:
+        max_crop_img_size = 0
+        max_crop_img = None
+        max_crop_img_path = None
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
@@ -112,7 +115,17 @@ def detect(opt):
                         label = None if opt.hide_labels else (names[c] if opt.hide_conf else f'{names[c]} {conf:.2f}')
                         plot_one_box(xyxy, im0, label=label, color=colors(c, True), line_thickness=opt.line_thickness)
                         if opt.save_crop:
-                            save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
+                            # save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
+                            crop, path = save_one_box(xyxy, imc, file=save_dir / 'crops' /  p.stem / f'{names[c]}.jpg', BGR=True)
+
+                    crop_x, crop_y, _ = crop.shape
+                    crop_img_size = crop_x * crop_y
+                    if crop_img_size > max_crop_img_size:
+                        max_crop_img = crop
+                        max_crop_img_path = path
+                        max_crop_img_size = crop_img_size
+
+                cv2.imwrite(max_crop_img_path, max_crop_img)
 
             # Print time (inference + NMS)
             print(f'{s}Done. ({t2 - t1:.3f}s)')

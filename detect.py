@@ -116,7 +116,7 @@ def detect(opt):
                         plot_one_box(xyxy, im0, label=label, color=colors(c, True), line_thickness=opt.line_thickness)
                         if opt.save_crop:
                             # save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
-                            crop, path = save_one_box(xyxy, imc, file=save_dir / 'crops' /  p.stem / f'{names[c]}.jpg', BGR=True)
+                            crop, path = save_one_box(xyxy, imc, file=save_dir / 'crops' / f'{p.stem}.jpg', BGR=True)
 
                     crop_x, crop_y, _ = crop.shape
                     crop_img_size = crop_x * crop_y

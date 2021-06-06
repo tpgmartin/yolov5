@@ -84,7 +84,7 @@ def detect(opt):
         # Process detections
         for i, det in enumerate(pred):  # detections per image
 
-            no_det = False
+            no_det = None
             if webcam:  # batch_size >= 1
                 p, s, im0, frame = path[i], f'{i}: ', im0s[i].copy(), dataset.count
             else:
@@ -118,19 +118,26 @@ def detect(opt):
                         label = None if opt.hide_labels else (names[c] if opt.hide_conf else f'{names[c]} {conf:.2f}')
                         plot_one_box(xyxy, im0, label=label, color=colors(c, True), line_thickness=opt.line_thickness)
                         if opt.save_crop:
-                            # save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
+
                             crop, path = save_one_box(xyxy, imc, file=save_dir / 'crops' / f'{p.stem}.JPEG', BGR=True)
 
                     crop_x, crop_y, _ = crop.shape
                     crop_img_size = crop_x * crop_y
-                    if crop_img_size > max_crop_img_size:
-                        max_crop_img = crop
-                        max_crop_img_path = path
-                        max_crop_img_size = crop_img_size
+                    if (names[c] in opt.accepted_names) and (crop_img_size > max_crop_img_size):
+                            max_crop_img = crop
+                            max_crop_img_path = path
+                            max_crop_img_size = crop_img_size
+                            no_det = False 
+                    else:
+                        if no_det is None:
+                            no_det = True
 
-                cv2.imwrite(max_crop_img_path, max_crop_img)
+                if max_crop_img_path:
+                    max_crop_img_path = max_crop_img_path.split('.')[0]+'.JPEG' if '.jpg' in max_crop_img_path else max_crop_img_path
+                    cv2.imwrite(max_crop_img_path, max_crop_img)
             else:
-                no_det = True
+                if no_det is None:
+                    no_det = True
 
             # Print time (inference + NMS)
             print(f'{s}Done. ({t2 - t1:.3f}s)')
@@ -149,7 +156,7 @@ def detect(opt):
                         if not os.path.isdir(full_img_save_dir): 
                             os.mkdir(full_img_save_dir)
                         save_path = '/'.join(save_path.split('/')[:-1] + ['crops'] + [save_path.split('/')[-1]])
-                        cv2.imwrite(save_path, im0)
+                        cv2.imwrite(save_path, im0s)
                 else:  # 'video' or 'stream'
                     if vid_path != save_path:  # new video
                         vid_path = save_path
@@ -187,6 +194,7 @@ if __name__ == '__main__':
     parser.add_argument('--save-crop', action='store_true', help='save cropped prediction boxes')
     parser.add_argument('--nosave', action='store_true', help='do not save images/videos')
     parser.add_argument('--classes', nargs='+', type=int, help='filter by class: --class 0, or --class 0 2 3')
+    parser.add_argument('--accepted-names', nargs='+', help='list of acceptable names for detect')
     parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
     parser.add_argument('--augment', action='store_true', help='augmented inference')
     parser.add_argument('--update', action='store_true', help='update all models')

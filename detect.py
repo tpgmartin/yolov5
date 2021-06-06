@@ -1,4 +1,5 @@
 import argparse
+import os
 import time
 from pathlib import Path
 
@@ -82,6 +83,8 @@ def detect(opt):
 
         # Process detections
         for i, det in enumerate(pred):  # detections per image
+
+            no_det = False
             if webcam:  # batch_size >= 1
                 p, s, im0, frame = path[i], f'{i}: ', im0s[i].copy(), dataset.count
             else:
@@ -116,7 +119,7 @@ def detect(opt):
                         plot_one_box(xyxy, im0, label=label, color=colors(c, True), line_thickness=opt.line_thickness)
                         if opt.save_crop:
                             # save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
-                            crop, path = save_one_box(xyxy, imc, file=save_dir / 'crops' / f'{p.stem}.jpg', BGR=True)
+                            crop, path = save_one_box(xyxy, imc, file=save_dir / 'crops' / f'{p.stem}.JPEG', BGR=True)
 
                     crop_x, crop_y, _ = crop.shape
                     crop_img_size = crop_x * crop_y
@@ -126,6 +129,8 @@ def detect(opt):
                         max_crop_img_size = crop_img_size
 
                 cv2.imwrite(max_crop_img_path, max_crop_img)
+            else:
+                no_det = True
 
             # Print time (inference + NMS)
             print(f'{s}Done. ({t2 - t1:.3f}s)')
@@ -139,6 +144,12 @@ def detect(opt):
             if save_img:
                 if dataset.mode == 'image':
                     cv2.imwrite(save_path, im0)
+                    if no_det:
+                        full_img_save_dir = '/'.join(save_path.split('/')[:-1]) + '/crops/'
+                        if not os.path.isdir(full_img_save_dir): 
+                            os.mkdir(full_img_save_dir)
+                        save_path = '/'.join(save_path.split('/')[:-1] + ['crops'] + [save_path.split('/')[-1]])
+                        cv2.imwrite(save_path, im0)
                 else:  # 'video' or 'stream'
                     if vid_path != save_path:  # new video
                         vid_path = save_path

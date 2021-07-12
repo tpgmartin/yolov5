@@ -1,4 +1,5 @@
 import argparse
+import numpy as np
 import os
 import time
 from pathlib import Path
@@ -62,6 +63,7 @@ def detect(opt):
         max_crop_img_size = 0
         max_crop_img = None
         max_crop_img_path = None
+        max_mask_array = None
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
@@ -119,7 +121,7 @@ def detect(opt):
                         plot_one_box(xyxy, im0, label=label, color=colors(c, True), line_thickness=opt.line_thickness)
                         if opt.save_crop:
 
-                            crop, path = save_one_box(xyxy, imc, file=save_dir / 'crops' / f'{p.stem}.JPEG', BGR=True)
+                            crop, path, mask = save_one_box(xyxy, imc, file=save_dir / 'crops' / f'{p.stem}.JPEG', BGR=True)
 
                     crop_x, crop_y, _ = crop.shape
                     crop_img_size = crop_x * crop_y
@@ -127,6 +129,7 @@ def detect(opt):
                             max_crop_img = crop
                             max_crop_img_path = path
                             max_crop_img_size = crop_img_size
+                            max_mask_array = mask
                             no_det = False 
                     else:
                         if no_det is None:
@@ -135,6 +138,10 @@ def detect(opt):
                 if max_crop_img_path:
                     max_crop_img_path = max_crop_img_path.split('.')[0]+'.JPEG' if '.jpg' in max_crop_img_path else max_crop_img_path
                     cv2.imwrite(max_crop_img_path, max_crop_img)
+                    mask_dir = '/'.join(max_crop_img_path.split('/')[:-1])
+                    mask_filename = max_crop_img_path.split('/')[-1].split('.')[0]
+                    mask_filepath = f'{mask_dir}/{mask_filename}.npy'
+                    np.save(mask_filepath, mask, allow_pickle=False)
             else:
                 if no_det is None:
                     no_det = True

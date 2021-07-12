@@ -701,36 +701,35 @@ def save_one_box(xyxy, im, file='image.jpg', gain=1.02, pad=10, square=False, BG
     # Save image crop as {file} with crop size multiple {gain} and {pad} pixels. Save and/or return crop
     xyxy = torch.tensor(xyxy).view(-1, 4)
 
-    print('xyxy')
-    print(xyxy)
-    print('------------')
+    # init mask
+    y, x, _ = im.shape
+    mask = []
+    for i in range(y):
+        mask.append([])
+        for _ in range(x):
+            mask[i].append(0)
+
+    # create mask array using original image crop size
+    x1, y1, x2, y2 = xyxy.numpy()[0]
+    x1 = int(x1)
+    y1 = int(y1)
+    x2 = int(x2)
+    y2 = int(y2)
+    for y in range(y1, y2):
+        for x in range(x1, x2):
+            mask[y][x] = 1
+
     b = xyxy2xywh(xyxy)  # boxes
     if square:
         b[:, 2:] = b[:, 2:].max(1)[0].unsqueeze(1)  # attempt rectangle to square
     b[:, 2:] = b[:, 2:] * gain + pad  # box wh * gain + pad
-    print('b')
-    print(b)
-    print('------------')
+
     xyxy = xywh2xyxy(b).long()
     clip_coords(xyxy, im.shape)
-    print('img dim.', im.shape)
-    print('xyxy', xyxy)
-    mask = []
-    for i in range(im.shape[1]):
-        mask.append([])
-        for j in range(im.shape[0]):
-            mask.append(0)
-    
-    print(xyxy[0, 1])
-    print(xyxy[0, 3])
-    print(xyxy[0, 0])
-    print(xyxy[0, 2])
-
-
     crop = im[int(xyxy[0, 1]):int(xyxy[0, 3]), int(xyxy[0, 0]):int(xyxy[0, 2]), ::(1 if BGR else -1)]
     if save:
         path = str(increment_path(file, mkdir=True).with_suffix('.jpg'))
-    return crop, path
+    return crop, path, mask
 
 
 def increment_path(path, exist_ok=False, sep='', mkdir=False):
